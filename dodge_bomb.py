@@ -45,6 +45,28 @@ def init_bb_imgs():
     bb_accs = [a for a in range(1, 11)]
     return bb_imgs, bb_accs
 
+def get_kk_imgs() -> dict[tuple[int, int], pg.Surface]:
+    """
+    移動量タプルに対応するこうかとんの画像を格納した辞書を返す
+    """
+    # 向きの基準となる画像をロード
+    kk_base_img = pg.transform.rotozoom(pg.image.load("fig/3.png"), 0, 0.9)
+    kk_flipped_img = pg.transform.flip(kk_base_img, True, False) # 左右反転
+
+    kk_imgs = {
+        (0, 0): kk_base_img,  # 静止
+        (5, 0): kk_flipped_img,  # 右
+        (5, -5): pg.transform.rotozoom(kk_flipped_img, 45, 1.0),  # 右上
+        (0, -5): pg.transform.rotozoom(kk_flipped_img, 90, 1.0),  # 上
+        (-5, -5): pg.transform.rotozoom(kk_base_img, -45, 1.0), # 左上
+        (-5, 0): kk_base_img,  # 左
+        (-5, 5): pg.transform.rotozoom(kk_base_img, 45, 1.0),  # 左下
+        (0, 5): pg.transform.rotozoom(kk_flipped_img, -90, 1.0), # 下
+        (5, 5): pg.transform.rotozoom(kk_flipped_img, -45, 1.0), # 右下
+    }
+    return kk_imgs
+
+
 def check_bound(rct: pg.Rect):
     yoko, tate = True, True
     if rct.left < 0 or WIDTH < rct.right:
@@ -57,8 +79,9 @@ def main():
     pg.display.set_caption("逃げろ！こうかとん")
     screen = pg.display.set_mode((WIDTH, HEIGHT))
     bb_imgs, bb_accs = init_bb_imgs()
-    bg_img = pg.image.load("fig/pg_bg.jpg")    
-    kk_img = pg.transform.rotozoom(pg.image.load("fig/3.png"), 0, 0.9)
+    bg_img = pg.image.load("fig/pg_bg.jpg")
+    kk_imgs = get_kk_imgs()    
+    kk_img = kk_imgs[(0, 0)]
     kk_rct = kk_img.get_rect()
     kk_rct.center = 300, 200
     bb_img = pg.Surface((20, 20))
@@ -92,6 +115,7 @@ def main():
             #   sum_mv[0] -= 5
             #if key_lst[pg.K_RIGHT]:
             #    sum_mv[0] += 5
+        kk_img = kk_imgs[tuple(sum_mv)]
         kk_rct.move_ip(sum_mv)
         if check_bound(kk_rct) != (True, True):
             kk_rct.move_ip(-sum_mv[0], -sum_mv[1])
@@ -104,12 +128,10 @@ def main():
         if not tate:
             vy *= -1
         bb_img = bb_imgs[index]
-        acc = bb_accs[index]
-        
         bb_rct = bb_img.get_rect(center=bb_rct.center) # サイズ変更に合わせてRectを更新
-        
-        current_vx, current_vy = vx * acc, vy * acc
-        bb_rct.move_ip(current_vx, current_vy)
+        avx = vx * (bb_accs[index] - 1)
+        avy = vy * (bb_accs[index] - 1)
+        bb_rct.move_ip(avx, avy)
         screen.blit(bb_img, bb_rct)
         pg.display.update()
         tmr += 1
