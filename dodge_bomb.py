@@ -133,7 +133,6 @@ def main():
 
         #爆弾の拡大と加速
         index = min(tmr // 500, 9)
-        bb_rct.move_ip(vx, vy)
         yoko, tate = check_bound(bb_rct)
         if not yoko:
             vx *= -1
