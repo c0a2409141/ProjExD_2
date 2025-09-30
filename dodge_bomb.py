@@ -13,6 +13,38 @@ DELTA = {
 }
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
+def gameover(screen: pg.Surface):
+    bg_img = pg.Surface((screen.get_width(), screen.get_height()))
+    pg.draw.rect(bg_img, (0, 0, 0), bg_img.get_rect())
+    bg_img.set_alpha(128)
+    screen.blit(bg_img, (0, 0))
+
+    font = pg.font.Font(None, 80)
+    txt = font.render("Game Over", True, (255, 255, 255))
+    txt_rect = txt.get_rect(center=(screen.get_width()/2, screen.get_height()/2 - 50))
+    screen.blit(txt, txt_rect)
+
+    
+
+    # 悲しむこうかとん画像
+    sad_kk_img = pg.transform.rotozoom(pg.image.load("fig/8.png"), 0, 2.0)
+    sad_kk_rct = sad_kk_img.get_rect(center=(WIDTH/2, HEIGHT/2 + 100))
+    screen.blit(sad_kk_img, sad_kk_rct)
+    
+    pg.display.update()
+    pg.time.wait(5000)
+
+def init_bb_imgs():
+    bb_imgs = []
+    for r in range(1, 11):
+        bb_img = pg.Surface((20*r, 20*r))
+        bb_img.set_colorkey((0, 0, 0))
+        pg.draw.circle(bb_img, (255, 0, 0), (10*r, 10*r), 10*r)
+        bb_imgs.append(bb_img)
+    # 加速度のリスト
+    bb_accs = [a for a in range(1, 11)]
+    return bb_imgs, bb_accs
+
 def check_bound(rct: pg.Rect):
     yoko, tate = True, True
     if rct.left < 0 or WIDTH < rct.right:
@@ -24,6 +56,7 @@ def check_bound(rct: pg.Rect):
 def main():
     pg.display.set_caption("逃げろ！こうかとん")
     screen = pg.display.set_mode((WIDTH, HEIGHT))
+    bb_imgs, bb_accs = init_bb_imgs()
     bg_img = pg.image.load("fig/pg_bg.jpg")    
     kk_img = pg.transform.rotozoom(pg.image.load("fig/3.png"), 0, 0.9)
     kk_rct = kk_img.get_rect()
@@ -44,6 +77,7 @@ def main():
         screen.blit(bg_img, [0, 0]) 
 
         if kk_rct.colliderect(bb_rct):
+            gameover(screen)
             return  # ゲームオーバー
 
         key_lst = pg.key.get_pressed()
@@ -62,12 +96,20 @@ def main():
         if check_bound(kk_rct) != (True, True):
             kk_rct.move_ip(-sum_mv[0], -sum_mv[1])
         screen.blit(kk_img, kk_rct)
+        index = min(tmr // 500, 9)
         bb_rct.move_ip(vx, vy)
         yoko, tate = check_bound(bb_rct)
         if not yoko:
             vx *= -1
         if not tate:
             vy *= -1
+        bb_img = bb_imgs[index]
+        acc = bb_accs[index]
+        
+        bb_rct = bb_img.get_rect(center=bb_rct.center) # サイズ変更に合わせてRectを更新
+        
+        current_vx, current_vy = vx * acc, vy * acc
+        bb_rct.move_ip(current_vx, current_vy)
         screen.blit(bb_img, bb_rct)
         pg.display.update()
         tmr += 1
